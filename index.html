@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>WeatherFlow Dashboard</title>
+  <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADE0lEQVR4nO1bwZHjIBBsXW0IisRvB8F9960QNowLwTmcgtjvKRLlwH6MDGiAGQTY6NxVW1u2pGG66cFIiAHtoIXnD1WyaNiIlHAKVXKtETRIXCnFDjLPc+hQ0ZxLBtsR5xD+u84AgN9j/FxCkCK5lwjCJk71qr7eE/nOjnGIw5GLHeJUwhEbP4IEBPDBiJ/FJVeAKHkO8S0QUwBmW2I+OQJs5I8Q34IJBWC0LeIkOTnY6znEt6CZAjDyYHH7xWynCvkSsNv3XMGah3BUIsmXIn7UATYCuUU5igQoTb4GiByjHFMl0BV54JGfVQ7RUogJ0B15A4kIIQG6JW/AFSFaApKbl1dGjAclwE6p3nrfgMh7xy3ogF6t74MoBQe+ADp2cu+483JcEB0Deu99gxgPW4DSj7BeGRvXnQPOUvs+QmOBEeB/6n0DDXgOOGvvG1Au4N4OnxZvAfAC9a/V85reHPDs+m8lgj8OVCuBy+XCOs8mrlV7N3zUCrwsS1KEf5/L44P1SEwrYJirpLVD1UFwWRYsy0Iec8gDwNX92MoJ1Rxgw3fDjrzBFTsnAHlumKYpenxdVwCeAOM4Ri+83W7yTO7glEQINUuiiQMMtnL4lF8rFSHWWfZM0BFgXdcmP4PDF6D/EAcSawNHSiKEp80Ehy/vC8HCSMkBsmkJ2NAKItLU9SWc0PW9QMmJkwaglVJaKaXN517+tOKf63Hs2wEGR0rhFAIcwVuA+/8BSC8i9A7vln8A3g5wBDi1C6jeB94O2AngvE5yFhd4PByOpAPOvi5ggxLgVGNBqPYNWGNAryJw8g4J4LigdYR6H4g7oOtSSFnfIFUCXYrAJQ8I5gG9iCBd4eIIsClYWoRpmpKPryWQviYL8B1AivAqbrBzke4bkEyFBxC/Ds8WgXh1f8uTg5x7AVKE1kL4bXIGPAq5T4UHANofE1ossZfaKmNw5LG4aVDP8+wkVkMIymG5vW6jxLqAKYndG+aR3koiVFJHe9xH1a2zqXFhHEcAj5XaGEoTrxLMQ9ZWWgPCLd1sng7hJbfP/wDcmpndPZzOswAAAABJRU5ErkJggg==">
+  <style>
+
+    /* ════════════════════════════════════════════════
+       COLOR SETTINGS — edit these to retheme
+       ════════════════════════════════════════════════
+       --color-outdoor  : temp, dewpoint, feels like, humidity
+       --color-wind     : wind avg, gust, lull, direction
+       --color-rain     : all rain data
+       --color-enviro   : UV, solar, pressure, trend
+       --color-lightning: lightning data
+       --color-ui       : headers, labels, station name
+    ════════════════════════════════════════════════ */
+    :root {
+      --color-outdoor:   #ff8c00;
+      --color-wind:      #00aaff;
+      --color-rain:      #44cc44;
+      --color-enviro:    #cc88ff;
+      --color-lightning: #ffdd00;
+      --color-ui:        #ff6600;
+
+      --color-bg-page:   #000000;
+      --color-bg-card:   #0c0c0c;
+      --color-border:    #1e1e1e;
+    }
+    /* ════════════════════════════════════════════════ */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--color-bg-page); width: 100%; height: 100%; overflow: hidden; }
+
+    #dash {
+      width: 100vw;
+      height: 100vh;
+      background: var(--color-bg-page);
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      padding: 0.3vh 0.3vw;
+      gap: 0.3vh;
+    }
+
+    /* ── HEADER ── */
+    .hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.2vh 0.8vw;
+      border-bottom: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+    .hdr-date { font-size: 2.4vw; font-weight: bold; color: var(--color-ui); }
+    .hdr-mid  { font-size: 1.3vw; color: #555; }
+    .hdr-time { font-size: 2.4vw; font-weight: bold; color: var(--color-ui); }
+
+    /* ── 3-COLUMN BODY ── */
+    .body {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5vw;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* LEFT: temp(2fr) dewpoint/humidity(1fr) feelslike/wetbulb(1fr) hi placeholder/windchill(1fr) */
+    .col-left {
+      display: grid;
+      grid-template-rows: 2fr 1fr 1fr 1fr;
+      gap: 0.4vh;
+      min-height: 0;
+    }
+
+    /* CENTER: station(auto) compass(1fr) wind spd+dir(auto) gust+lull(auto) avg(auto) */
+    .col-mid {
+      display: grid;
+      grid-template-rows: auto 1fr auto auto auto;
+      gap: 0.4vh;
+      min-height: 0;
+    }
+
+    /* RIGHT: rain(auto x3) enviro(auto x2) lightning(auto) battery(auto) */
+    .col-right {
+      display: grid;
+      grid-template-rows: repeat(5, 1fr) auto;
+      gap: 0.4vh;
+      min-height: 0;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: 0.4vw;
+      padding: 0.4vh 0.8vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4vw; min-height: 0; }
+    .pair .card { min-height: 0; }
+
+    /* ── LABELS ── */
+    .lbl { font-size: 1.15vw; color: #888; font-style: italic; line-height: 1; white-space: nowrap; margin-bottom: 0.15vh; }
+
+    /* ── VALUE CLASSES ── */
+    .v-xl       { font-size: 7vw;   font-weight: bold; color: var(--color-outdoor);   line-height: 1; }
+    .v-outdoor  { font-size: 3.8vw; font-weight: bold; color: var(--color-outdoor);   line-height: 1; }
+    .v-wind     { font-size: 3.8vw; font-weight: bold; color: var(--color-wind);      line-height: 1; }
+    .v-rain     { font-size: 3.8vw; font-weight: bold; color: var(--color-rain);      line-height: 1; }
+    .v-enviro   { font-size: 3.8vw; font-weight: bold; color: var(--color-enviro);    line-height: 1; }
+    .v-lightning{ font-size: 3.8vw; font-weight: bold; color: var(--color-lightning); line-height: 1; }
+
+    /* Wind unit/deg suffix */
+    .wind-unit { font-size: 1.8vw; color: var(--color-wind); }
+    .wind-deg  { font-size: 1.8vw; color: var(--color-wind); }
+    .wind-lbl  { font-size: 1.1vw; color: #888; font-style: italic; margin-bottom: 0.15vh; line-height: 1; }
+
+    /* ── COMPASS ── */
+    .compass-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: 0.4vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0.3vh 0.4vw;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #compass { display: block; flex-shrink: 0; }
+
+    /* Wind row (dir + speed side by side) */
+    .wind-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4vw;
+      min-height: 0;
+    }
+
+    /* Station bar */
+    .station-bar {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: 0.4vw;
+      padding: 0.3vh 0.8vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* Battery row */
+    .bat-row {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: 0.4vw;
+      padding: 0.25vh 0.8vw;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── FOOTER ── */
+    .footer { font-size: 0.9vw; color: #3a3a3a; text-align: center; flex-shrink: 0; }
+    #fetch-status { font-size: 1.3vw; }
+  </style>
+</head>
+<body>
+<div id="dash">
+
+  <div class="hdr">
+    <span class="hdr-date" id="hdr-date">--</span>
+    <span class="hdr-mid">WeatherFlow &nbsp;<span id="fetch-status">Loading...</span></span>
+    <span class="hdr-time" id="hdr-time">--</span>
+  </div>
+
+  <div class="body">
+
+    <!-- ══ LEFT: TEMPERATURE ══ -->
+    <div class="col-left">
+
+      <div class="card">
+        <div class="lbl">Temperature (°F)</div>
+        <div class="v-xl" id="temp">--</div>
+      </div>
+
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Humidity</div>
+          <div class="v-outdoor" id="humidity">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Dewpoint (°F)</div>
+          <div class="v-outdoor" id="dewpoint">--</div>
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Feels Like (°F)</div>
+          <div class="v-outdoor" id="feels-like">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Dewpoint Comfort</div>
+          <div class="v-outdoor" id="dew-comfort">--</div>
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Wind Chill (°F)</div>
+          <div class="v-outdoor" id="wind-chill">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Wet Bulb (°F)</div>
+          <div class="v-outdoor" id="wet-bulb">--</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ CENTER: WIND ══ -->
+    <div class="col-mid">
+
+      <div class="station-bar">
+        <div>
+          <div style="font-size:1.5vw;font-weight:bold;color:var(--color-ui);" id="station-name">--</div>
+          <div style="font-size:1vw;color:#444;" id="last-updated">--</div>
+        </div>
+      </div>
+
+      <div class="compass-card" id="compass-card">
+        <canvas id="compass"></canvas>
+      </div>
+
+      <div class="wind-row">
+        <div class="card">
+          <div class="wind-lbl">Direction</div>
+          <div>
+            <span class="v-wind" id="wind-dir-label">--</span>
+            <span class="wind-deg" id="wind-deg-label"> --°</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="wind-lbl">Wind Avg (mph)</div>
+          <div>
+            <span class="v-wind" id="wind-avg">--</span>
+            <span class="wind-unit"> mph</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Wind Gust (mph)</div>
+          <div class="v-wind" id="wind-gust">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Wind Lull (mph)</div>
+          <div class="v-wind" id="wind-lull">--</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="lbl">10-Min Avg Direction</div>
+        <div class="v-wind" id="wind-avg-dir">--</div>
+      </div>
+
+    </div>
+
+    <!-- ══ RIGHT: RAIN / ENVIRO / LIGHTNING ══ -->
+    <div class="col-right">
+
+      <!-- Rain Rate / Today -->
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Rain Rate (in/hr)</div>
+          <div class="v-rain" id="rain-rate">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Today Rain (in)</div>
+          <div class="v-rain" id="rain-today">--</div>
+        </div>
+      </div>
+
+      <!-- Yesterday Rain -->
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Yesterday Rain (in)</div>
+          <div class="v-rain" id="rain-yesterday">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Rain 1hr (in)</div>
+          <div class="v-rain" id="rain-1hr">--</div>
+        </div>
+      </div>
+
+      <!-- UV / Solar -->
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">UV Index</div>
+          <div class="v-enviro" id="uv">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Solar Rad (W/m²)</div>
+          <div class="v-enviro" id="solar">--</div>
+        </div>
+      </div>
+
+      <!-- Pressure / Trend -->
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Sea Level (inHg)</div>
+          <div class="v-enviro" id="pressure">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Baro Trend</div>
+          <div class="v-enviro" id="pressure-trend">--</div>
+        </div>
+      </div>
+
+      <!-- Lightning -->
+      <div class="pair">
+        <div class="card">
+          <div class="lbl">Lightning Today</div>
+          <div class="v-lightning" id="lightning-today">--</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Lightning Dist (mi)</div>
+          <div class="v-lightning" id="lightning-dist">--</div>
+        </div>
+      </div>
+
+      <div class="bat-row">
+        <div style="font-size:1.2vw;color:#555;" id="station-info">--</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer" id="footer-updated"></div>
+
+</div>
+<script>
+  // ── CONFIG ─────────────────────────────────────────
+  // Point this at your Cloudflare Worker once deployed.
+  // Replace the placeholder with your actual Worker URL.
+  const API_URL         = 'https://YOUR-WORKER.YOUR-NAME.workers.dev';
+  const REFRESH_SECONDS = 60;
+  // ───────────────────────────────────────────────────
+
+  let lastWindDeg = null;
+
+  function degToDir(d) {
+    return ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(d/22.5)%16];
+  }
+
+  function dewComfort(dp) {
+    if (dp===null||dp===undefined) return '--';
+    if (dp < 35) return 'Dry';
+    if (dp < 45) return 'Comfy';
+    if (dp < 55) return 'OK';
+    if (dp < 65) return 'Humid';
+    return 'Muggy';
+  }
+
+  function v(x, d=1) { return (x===undefined||x===null) ? '--' : Number(x).toFixed(d); }
+  function set(id, txt) { const e=document.getElementById(id); if(e) e.textContent=txt; }
+
+  function drawCompass(deg) {
+    const card=document.getElementById('compass-card');
+    const canvas=document.getElementById('compass');
+    const avW=card.clientWidth-12, avH=card.clientHeight-8;
+    const size=Math.max(40,Math.min(avW,avH));
+    canvas.width=size; canvas.height=size;
+    const ctx=canvas.getContext('2d');
+    const cx=size/2, cy=size/2, r=size/2-2;
+    ctx.clearRect(0,0,size,size);
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle='#111'; ctx.fill();
+    ctx.strokeStyle='#444'; ctx.lineWidth=2; ctx.stroke();
+    for(let i=0;i<360;i+=5){
+      const a=(i-90)*Math.PI/180, isMajor=i%45===0, isMed=i%15===0;
+      const inner=isMajor?r-r*0.18:isMed?r-r*0.12:r-r*0.07;
+      ctx.beginPath();
+      ctx.moveTo(cx+inner*Math.cos(a),cy+inner*Math.sin(a));
+      ctx.lineTo(cx+(r-2)*Math.cos(a),cy+(r-2)*Math.sin(a));
+      ctx.strokeStyle=isMajor?'#666':isMed?'#3a3a3a':'#222';
+      ctx.lineWidth=isMajor?1.5:0.8; ctx.stroke();
+    }
+    const fs=Math.max(9,Math.round(r*0.16)), fsS=Math.max(7,Math.round(r*0.11));
+    [['N',0,'#ff4400',fs],['NE',45,'#777',fsS],['E',90,'#999',fs],['SE',135,'#777',fsS],
+     ['S',180,'#999',fs],['SW',225,'#777',fsS],['W',270,'#999',fs],['NW',315,'#777',fsS]
+    ].forEach(([lbl,d,col,sz])=>{
+      const a=(d-90)*Math.PI/180, fr=r-sz*1.2;
+      ctx.fillStyle=col; ctx.font=`bold ${sz}px Arial`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(lbl,cx+fr*Math.cos(a),cy+fr*Math.sin(a));
+    });
+    if(deg!==null){
+      const a=(deg-90)*Math.PI/180, ar=r*0.65, aw=r*0.16, tb=r*0.40, tw=r*0.11;
+      ctx.beginPath();
+      ctx.moveTo(cx+ar*Math.cos(a),cy+ar*Math.sin(a));
+      ctx.lineTo(cx+aw*Math.cos(a+Math.PI/2),cy+aw*Math.sin(a+Math.PI/2));
+      ctx.lineTo(cx+aw*Math.cos(a-Math.PI/2),cy+aw*Math.sin(a-Math.PI/2));
+      ctx.closePath(); ctx.fillStyle='#ff5500'; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx-tb*Math.cos(a),cy-tb*Math.sin(a));
+      ctx.lineTo(cx+tw*Math.cos(a+Math.PI/2),cy+tw*Math.sin(a+Math.PI/2));
+      ctx.lineTo(cx+tw*Math.cos(a-Math.PI/2),cy+tw*Math.sin(a-Math.PI/2));
+      ctx.closePath(); ctx.fillStyle='#333'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx,cy,r*0.07,0,Math.PI*2);
+      ctx.fillStyle='#ff8c00'; ctx.fill();
+    }
+  }
+
+  async function fetchData() {
+    try {
+      set('fetch-status','Fetching...');
+      document.getElementById('fetch-status').style.color='#888';
+      const resp = await fetch(API_URL);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const d = await resp.json();
+      if (d.error) throw new Error(d.error);
+
+      set('station-name', d.station_name || 'WeatherFlow');
+      set('last-updated', d.timestamp ? 'Last: '+new Date(d.timestamp*1000).toLocaleTimeString() : '');
+      set('fetch-status','Live ●');
+      document.getElementById('fetch-status').style.color='#44cc44';
+
+      set('temp',        v(d.tempf,1)+'°');
+      set('humidity',    v(d.humidity,0)+'%');
+      set('dewpoint',    v(d.dew_point,1)+'°');
+      set('feels-like',  v(d.feels_like,1)+'°');
+      set('dew-comfort', dewComfort(d.dew_point));
+      set('wind-chill',  v(d.wind_chill,1)+'°');
+      set('wet-bulb',    v(d.wet_bulb,1)+'°');
+
+      set('pressure',       v(d.pressure,2));
+      set('pressure-trend', d.pressure_trend || '--');
+      set('uv',             v(d.uv,1));
+      set('solar',          v(d.solar,0));
+
+      lastWindDeg = d.wind_direction;
+      set('wind-dir-label', degToDir(d.wind_direction));
+      set('wind-deg-label', v(d.wind_direction,0)+'°');
+      drawCompass(d.wind_direction);
+      set('wind-avg',     v(d.wind_avg,1));
+      set('wind-gust',    v(d.wind_gust,1));
+      set('wind-lull',    v(d.wind_lull,1));
+      set('wind-avg-dir', degToDir(d.wind_direction)+' '+v(d.wind_direction,0)+'°');
+
+      set('rain-rate',      v(d.rain_rate,2));
+      set('rain-today',     v(d.rain_today,2));
+      set('rain-yesterday', v(d.rain_yesterday,2));
+      set('rain-1hr',       v(d.rain_rate,2));
+
+      set('lightning-today', d.lightning_today!==undefined ? d.lightning_today : '--');
+      set('lightning-dist',  d.lightning_distance!==undefined ? v(d.lightning_distance,1)+' mi' : '--');
+
+      set('station-info', d.station_name || '');
+      set('footer-updated','Updated: '+new Date().toLocaleTimeString());
+
+    } catch(e) {
+      set('fetch-status','Error: '+e.message);
+      document.getElementById('fetch-status').style.color='#ff4444';
+    }
+  }
+
+  function updateClock() {
+    const n=new Date();
+    set('hdr-date',n.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'}));
+    set('hdr-time',n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  }
+
+  window.addEventListener('resize',()=>drawCompass(lastWindDeg));
+  drawCompass(null);
+  updateClock();
+  setInterval(updateClock,1000);
+  fetchData();
+  setInterval(fetchData,REFRESH_SECONDS*1000);
+</script>
+</body>
+</html>
