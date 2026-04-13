@@ -1,0 +1,1 @@
+Minong, WI Weather
