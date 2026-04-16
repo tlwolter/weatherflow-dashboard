@@ -1,6 +1,6 @@
 ﻿{
-  "name": "Weather Dashboard",
-  "short_name": "Weather",
+  "name": "Minong Weather Dashboard",
+  "short_name": "Minong",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#000000",
