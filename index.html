@@ -461,10 +461,10 @@
       set('wind-lull',    v(d.wind_lull,1));
       set('wind-avg-dir', degToDir(d.wind_direction)+' '+v(d.wind_direction,0)+'°');
 
-      set('rain-rate',      v(d.rain_rate/25.4,2)
-      set('rain-today',     v(d.rain_today/25.4,2));
-      set('rain-yesterday', v(d.rain_yesterday/25.4,2));
-      set('rain-1hr',       v(d.rain_rate/25.4,2));
+      set('rain-rate',      v(d.rain_rate,2));
+      set('rain-today',     v(d.rain_today,2));
+      set('rain-yesterday', v(d.rain_yesterday,2));
+      set('rain-1hr',       v(d.rain_rate,2));
 
       set('lightning-today', d.lightning_today!==undefined ? d.lightning_today : '--');
       set('lightning-dist',  d.lightning_distance!==undefined ? v(d.lightning_distance,1)+' mi' : '--');
